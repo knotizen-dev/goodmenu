@@ -1,1 +1,1141 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>맛집 리스트</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#E85D04">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="맛집리스트">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --primary: #E85D04;
+      --primary-dark: #C04A00;
+      --primary-light: #FFF0E8;
+      --bg: #F5F5F5;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text2: #555;
+      --text3: #999;
+      --border: #E8E8E8;
+      --shadow: 0 2px 10px rgba(0,0,0,0.08);
+      --r: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--primary);
+      padding: 14px 16px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(232,93,4,0.35);
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .header h1 { font-size: 19px; font-weight: 700; color: white; }
+    .btn-add {
+      background: white;
+      color: var(--primary);
+      border: none;
+      border-radius: 20px;
+      padding: 7px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .search-wrap {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .search-wrap input {
+      border: none;
+      outline: none;
+      flex: 1;
+      font-size: 15px;
+      background: transparent;
+      color: white;
+      font-family: inherit;
+    }
+    .search-wrap input::placeholder { color: rgba(255,255,255,0.7); }
+    .search-wrap .ico { color: rgba(255,255,255,0.8); font-size: 15px; }
+    .btn-clear { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 16px; padding: 0; display: none; }
+
+    /* ===== FILTERS ===== */
+    .filter-area { background: white; border-bottom: 1px solid var(--border); }
+    .filter-section { padding: 10px 16px; }
+    .filter-section + .filter-section { border-top: 1px solid var(--border); padding-top: 8px; }
+    .filter-scroll {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .filter-scroll::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      padding: 6px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      color: var(--text2);
+      white-space: nowrap;
+      transition: all 0.12s;
+      font-family: inherit;
+    }
+    .chip.on { background: var(--primary); border-color: var(--primary); color: white; font-weight: 600; }
+    .region-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .rsel {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 8px;
+      font-size: 13px;
+      background: white;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text);
+    }
+    .rsel:focus { border-color: var(--primary); }
+
+    /* ===== STATS ===== */
+    .stats { padding: 10px 16px 6px; font-size: 13px; color: var(--text3); }
+
+    /* ===== LIST ===== */
+    .list { padding: 0 12px 80px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.1s;
+      border: 1px solid var(--border);
+    }
+    .card:active { transform: scale(0.98); }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .card-name { font-size: 16px; font-weight: 700; flex: 1; line-height: 1.3; }
+    .ftag {
+      flex-shrink: 0;
+      margin-left: 8px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .ft-한식 { background: #FFF3E0; color: #BF360C; }
+    .ft-중식 { background: #FCE4EC; color: #B71C1C; }
+    .ft-일식 { background: #F3E5F5; color: #6A1B9A; }
+    .ft-양식 { background: #E3F2FD; color: #0D47A1; }
+    .ft-분식 { background: #E8F5E9; color: #1B5E20; }
+    .card-region { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+    .card-addr { font-size: 13px; color: var(--text2); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+
+    /* ===== EMPTY ===== */
+    .empty { text-align: center; padding: 70px 20px; color: var(--text3); }
+    .empty .emo { font-size: 52px; margin-bottom: 14px; }
+    .empty .t1 { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+    .empty .t2 { font-size: 14px; }
+
+    /* ===== MODAL ===== */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .sheet {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 480px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 8px 20px 24px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      animation: up 0.28s ease;
+    }
+    @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .handle { width: 36px; height: 4px; background: #DDD; border-radius: 2px; margin: 8px auto 18px; }
+    .sheet-title { font-size: 19px; font-weight: 700; margin-bottom: 18px; }
+
+    /* ===== DETAIL ===== */
+    .d-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+    .d-name { font-size: 20px; font-weight: 700; flex: 1; }
+    .d-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .d-item { }
+    .d-lbl { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .d-val { font-size: 15px; font-weight: 500; }
+    .d-addr-box { background: var(--bg); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+    .d-addr-lbl { font-size: 11px; color: var(--text3); font-weight: 500; margin-bottom: 4px; }
+    .d-addr-val { font-size: 14px; line-height: 1.5; }
+    .d-memo { background: #FFFDF5; border: 1px solid #F0E8C8; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; color: var(--text2); }
+    .btn-kakao {
+      background: #FEE500;
+      color: #3A1D1D;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      width: 100%;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .btn-phone {
+      background: #E8F5E9;
+      color: #1B5E20;
+      border: 1px solid #C8E6C9;
+      border-radius: 12px;
+      padding: 13px;
+      width: 100%;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      text-decoration: none;
+    }
+    .d-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .btn-edit {
+      background: var(--bg);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-del {
+      background: #FFF0F0;
+      color: #C62828;
+      border: 1.5px solid #FFCDD2;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-size: 15px;
+      padding: 12px 0 0;
+      width: 100%;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ===== FORM ===== */
+    .fg { margin-bottom: 15px; }
+    .fl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--text2); }
+    .fi, .fsel, .fta {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      font-size: 16px;
+      outline: none;
+      font-family: inherit;
+      background: white;
+      color: var(--text);
+    }
+    .fi:focus, .fsel:focus, .fta:focus { border-color: var(--primary); }
+    .fta { resize: none; }
+    .frow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .frow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tgl {
+      padding: 12px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      font-family: inherit;
+      color: var(--text2);
+      transition: all 0.12s;
+    }
+    .tgl.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      width: 100%;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      font-family: inherit;
+    }
+    .btn-cancel {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-size: 15px;
+      padding: 12px 0;
+      width: 100%;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .req { color: var(--primary); }
+    .fi.req-f, .fsel.req-f {
+      background: #EEF4FF;
+      border-color: #A8C4FF;
+    }
+    .fi.req-f:focus, .fsel.req-f:focus {
+      border-color: #4A90E2;
+      background: white;
+    }
+    input[lang="ko"], textarea[lang="ko"] {
+      ime-mode: active;
+      -ms-ime-mode: active;
+    }
+    .btn-gear {
+      background: rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      color: white;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .import-box {
+      background: linear-gradient(135deg,#FFF3E0,#FFF8F3);
+      border: 1.5px solid #FFCC80;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+    .import-title { font-size: 13px; font-weight: 700; color: #E65100; margin-bottom: 8px; }
+    .import-row { display: flex; gap: 8px; }
+    .btn-import {
+      flex-shrink: 0;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .import-status { font-size: 12px; margin-top: 6px; min-height: 16px; line-height: 1.4; }
+    .sett-info {
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 8px;
+      line-height: 1.8;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-row">
+    <h1>🍽️ 맛집 리스트</h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-gear" onclick="openSettings()" title="설정">⚙️</button>
+      <button class="btn-add" onclick="openAdd()">＋ 추가</button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="ico">🔍</span>
+    <input id="searchInput" type="text" placeholder="식당 이름, 주소 검색..." oninput="onSearch(this.value)">
+    <button id="btnClear" class="btn-clear" onclick="clearSearch()">✕</button>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filter-area">
+  <div class="filter-section">
+    <div class="filter-scroll" id="foodChips">
+      <button class="chip on" data-v="" onclick="setFood(this,'')">전체</button>
+      <button class="chip" data-v="한식" onclick="setFood(this,'한식')">🥘 한식</button>
+      <button class="chip" data-v="중식" onclick="setFood(this,'중식')">🥢 중식</button>
+      <button class="chip" data-v="일식" onclick="setFood(this,'일식')">🍣 일식</button>
+      <button class="chip" data-v="양식" onclick="setFood(this,'양식')">🍝 양식</button>
+      <button class="chip" data-v="분식" onclick="setFood(this,'분식')">🍢 분식</button>
+    </div>
+  </div>
+  <div class="filter-section">
+    <div class="filter-scroll">
+      <button class="chip" id="chipTable" onclick="toggleChip('tableSeating','chipTable')">🪑 입식만</button>
+      <button class="chip" id="chipRoom" onclick="toggleChip('privateRoom','chipRoom')">🚪 단독룸만</button>
+      <button class="chip" id="chipRegion" onclick="toggleRegion()">🗺️ 지역 필터</button>
+    </div>
+  </div>
+  <div id="regionArea" style="display:none">
+    <div class="filter-section">
+      <div class="region-grid">
+        <select class="rsel" id="selProv" onchange="onProvChange()"><option value="">도·시 전체</option></select>
+        <select class="rsel" id="selCity" onchange="onCityChange()"><option value="">시·군·구 전체</option></select>
+        <select class="rsel" id="selDist" onchange="onDistChange()"><option value="">동·읍·면 전체</option></select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats" id="stats"></div>
+
+<!-- LIST -->
+<div class="list" id="list"></div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- FORM MODAL -->
+<div class="overlay" id="formOverlay">
+  <div class="sheet" id="formSheet"></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settOverlay" onclick="closeSett(event)">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-title">⚙️ 설정</div>
+    <div class="fg">
+      <label class="fl">카카오 JavaScript API 키</label>
+      <input id="settKey" class="fi" placeholder="JavaScript 앱 키를 입력하세요" type="text" autocomplete="off">
+      <div class="sett-info">
+        카카오맵 URL 자동입력 기능에 사용됩니다.<br>
+        1. <a href="https://developers.kakao.com" target="_blank" style="color:var(--primary)">developers.kakao.com</a> → 내 애플리케이션 → 앱 만들기<br>
+        2. 앱 키 → <strong>JavaScript 키</strong> 복사 후 위에 입력<br>
+        3. 플랫폼 → Web → 사이트 도메인에 배포 URL 등록<br>
+        &nbsp;&nbsp;&nbsp;(예: https://내앱.netlify.app)
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">저장</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <div class="fg">
+      <label class="fl">데이터 내보내기</label>
+      <button onclick="exportHTML()" style="background:#EEF2FF;color:#1565C0;border:1.5px solid #C5CAE9;border-radius:12px;padding:13px;width:100%;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">
+        📥 index.html 다운로드
+      </button>
+      <div class="sett-info" style="margin-top:6px">현재 맛집 데이터가 포함된 HTML 파일을 다운로드합니다.<br>이 파일을 서버에 올리면 데이터가 반영됩니다.</div>
+    </div>
+    <button class="btn-cancel" onclick="closeSettBtn()">닫기</button>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+const _emb = [{"id":"mudg5bkbzf9r8k9uj7i","name":"대가한정식","foodType":"한식","province":"충청북도","city":"청주시","district":"흥덕구","address":"충북 청주시 흥덕구 직지대로 51","addressUrl":"http://place.map.kakao.com/665980134","phone":"043-232-8880","mobile":"010-6800-5780","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":30,"memo":""},{"id":"mudg6ivw6yhb4zn3ife","name":"전통황실양고기","foodType":"한식","province":"충청북도","city":"청주시","district":"서원구","address":"충북 청주시 서원구 2순환로 1618","addressUrl":"http://place.map.kakao.com/1451965573","phone":"043-288-4956","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":20,"memo":""},{"id":"mudg8sjb5c73rbe2y9f","name":"경화대반점","foodType":"중식","province":"충청북도","city":"청주시","district":"서원구","address":"충북 청주시 서원구 1순환로 866","addressUrl":"http://place.map.kakao.com/846597927","phone":"043-293-8885","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudgao1twl14zgb7qm8","name":"까망염소","foodType":"한식","province":"충청북도","city":"청주시","district":"흥덕구","address":"충북 청주시 흥덕구 고락로40번길 19","addressUrl":"http://place.map.kakao.com/10201283","phone":"043-233-3406","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":20,"memo":""},{"id":"mudgewvluqz6rgeex3m","name":"샌드위크 청주본점","foodType":"한식","province":"충청북도","city":"청주시","district":"서원구","address":"충북 청주시 서원구 사직대로89번길 26-1","addressUrl":"http://place.map.kakao.com/555708040","phone":"043-266-5120","mobile":"01089545120","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudgmcz2zzj6jjo4xi","name":"가화한정식","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 내덕로 27","addressUrl":"http://place.map.kakao.com/8684123","phone":"0432210231","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudgnjd0uarhck6mja","name":"가마육교가든","foodType":"한식","province":"충청북도","city":"청주시","district":"남이면","address":"충북 청주시 서원구 남이면 청남로 1771-11","addressUrl":"https://place.map.kakao.com/8733644","phone":"043-291-7585","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":"단독룸은 좌식임"},{"id":"mudgour4yyc6yo1z6z","name":"거송갈비찜 청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 충청대로 357","addressUrl":"https://place.map.kakao.com/526862296","phone":"0503-7152-8869","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":20,"memo":""},{"id":"mudh2mx2dz68qkywoi","name":"백송짜글짜글","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 옥산시내1길 63","addressUrl":"http://place.map.kakao.com/1579559361","phone":"043-266-0365","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudh39yalwcqbcvaoaq","name":"대운분식","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 청주역로 654","addressUrl":"http://place.map.kakao.com/10238779","phone":"043-260-0667","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudh3x7mvw2pxx24xs","name":"옥산해장국집","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 청주역로 670","addressUrl":"http://place.map.kakao.com/20272811","phone":"043-260-3823","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":"아침일찍 식사 가능"},{"id":"mudhat3g92asihqh3cf","name":"보국가든","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 심동로 654-12","addressUrl":"http://place.map.kakao.com/2097149863","phone":"043-234-2552","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhb7ksivdbjkvkbz","name":"동림가든","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 심동로 659","addressUrl":"http://place.map.kakao.com/21273539","phone":"043-231-1030","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhc4bwr4k8iqvjhq","name":"대화식당","foodType":"한식","province":"충청북도","city":"청주시","district":"옥산면","address":"충북 청주시 흥덕구 옥산면 오산덕촌길 79 1층","addressUrl":"https://place.map.kakao.com/10302540","phone":"043-260-0616","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhcpnnh3addco7f3b","name":"하이벳수산","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 산미로 158","addressUrl":"http://place.map.kakao.com/313788761","phone":"043-285-0430","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhdjnigptpo2p62st","name":"대청마루전통손짜장","foodType":"중식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 청암로 113","addressUrl":"http://place.map.kakao.com/9311771","phone":"043-214-2900","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhdzjs5mhpri20ev8","name":"시골미꾸라지매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"정봉동","address":"충북 청주시 흥덕구 직지대로 10-1","addressUrl":"http://place.map.kakao.com/9183428","phone":"043-233-1789","mobile":"","hasTableSeating":false,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudheurc7qf4yqa28qd","name":"청주역 골목오리탕 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"정봉동","address":"충북 청주시 흥덕구 청주역로358번길 12","addressUrl":"http://place.map.kakao.com/8751985","phone":"043-231-9632","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhf95oosu90m0qy4","name":"가마솥추어탕","foodType":"한식","province":"충청북도","city":"청주시","district":"정봉동","address":"충북 청주시 흥덕구 청주역로 350-6","addressUrl":"http://place.map.kakao.com/9689053","phone":"043-232-4442","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhj65qebv5tmfwvop","name":"선비마을","foodType":"한식","province":"충청북도","city":"청주시 흥덕구","district":"청주역로 348 1층","address":"충북 청주시 흥덕구 청주역로 348 1층","addressUrl":"https://place.map.kakao.com/9170647","phone":"0432368259","mobile":"","hasTableSeating":false,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhleecska8161ljir","name":"유씨네본가누룽지삼계탕 서청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"지동동","address":"충북 청주시 흥덕구 직지대로 95","addressUrl":"http://place.map.kakao.com/707051017","phone":"043-234-8000","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhlrjcqiqix8k4pps","name":"커피빵공장","foodType":"한식","province":"충청북도","city":"청주시","district":"지동동","address":"충북 청주시 흥덕구 직지대로112번길 26","addressUrl":"http://place.map.kakao.com/977197534","phone":"0503-7153-1923","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhm7aamwy3gckua","name":"위드쿠잉","foodType":"양식","province":"충청북도","city":"청주시","district":"지동동","address":"충북 청주시 흥덕구 동촌로28번길 28","addressUrl":"http://place.map.kakao.com/203276823","phone":"043-232-6728","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhmjed2x5vbmvwqf7","name":"화원각","foodType":"중식","province":"충청북도","city":"청주시","district":"지동동","address":"충북 청주시 흥덕구 직지대로 161","addressUrl":"http://place.map.kakao.com/18440214","phone":"043-235-0064","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhmynfh71lezyi1ag","name":"개벽화덕구이나물솥밥","foodType":"한식","province":"충청북도","city":"청주시","district":"향정동","address":"충북 청주시 흥덕구 신성로 11","addressUrl":"http://place.map.kakao.com/1642155171","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhndzydj6e0vexcym","name":"달빛에구운고등어 청주지웰점","foodType":"한식","province":"충청북도","city":"청주시","district":"향정동","address":"충북 청주시 흥덕구 향정동 104","addressUrl":"http://place.map.kakao.com/1222032022","phone":"043-232-9292","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhoo386s4vexgxr4q","name":"중화요리 려홍","foodType":"중식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 직지대로240번길 76","addressUrl":"http://place.map.kakao.com/229494155","phone":"043-234-2004","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhp6nmf8uzlnp5zh9","name":"춘천집 복대지웰시티점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 직지대로240번길 76","addressUrl":"http://place.map.kakao.com/1015772633","phone":"043-231-1114","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhpre341ntzvfcssh","name":"경복궁&갓포 제주청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1020","addressUrl":"http://place.map.kakao.com/2025723009","phone":"043-231-5221","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhqcjyd4dg7gmmeo","name":"회한첨","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 부모산로 12","addressUrl":"http://place.map.kakao.com/1387380882","phone":"043-904-4486","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhqtinm08hhzpcik","name":"원조능이흑염소","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 부모산로 7","addressUrl":"http://place.map.kakao.com/8035140","phone":"043-232-4025","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhrbabuwc738zde6","name":"청주조개구이무한리필","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1052","addressUrl":"http://place.map.kakao.com/535541769","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhsbfqkkz19dh6wv","name":"우림칼국수 복대비하점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 죽천로 11","addressUrl":"http://place.map.kakao.com/84252917","phone":"043-234-5953","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhss4jh81d754p5h","name":"바다목장횟집","foodType":"일식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 45","addressUrl":"http://place.map.kakao.com/1021090390","phone":"0502-5551-8517","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudht4lw7a7pm59ise8","name":"뻑장어","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로 85-33","addressUrl":"http://place.map.kakao.com/19193207","phone":"043-231-5534","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhur770ttea2txsbm","name":"청주담한상","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 44","addressUrl":"http://place.map.kakao.com/1310001730","phone":"043-238-1000","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhx8gv5pjrtm79vnc","name":"청담이상 청주복대점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 9","addressUrl":"http://place.map.kakao.com/1211030043","phone":"043-233-2701","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhz1wdnk0qqwdmrji","name":"우당","foodType":"한식","province":"충청북도","city":"청주시 흥덕구","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 31 2~4층","addressUrl":"https://place.map.kakao.com/18164577","phone":"0432722723","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudhzh5g3ssn27esmv7","name":"차이향","foodType":"중식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 12","addressUrl":"http://place.map.kakao.com/26555948","phone":"043-236-2468","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudhzs32b9fmhpjq7ys","name":"구이구이쪽갈비 지웰점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 22","addressUrl":"http://place.map.kakao.com/1509305805","phone":"043-232-9295","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi04c7ouwyilv7da8","name":"좋은사람들연탄구이","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로109번길 26","addressUrl":"http://place.map.kakao.com/21450332","phone":"043-238-2279","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi0vat3jyevkxl52d","name":"만재네 청주복대지웰점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로 115","addressUrl":"http://place.map.kakao.com/1895200218","phone":"070-8867-1883","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi1abnglua0akfz49","name":"대발이네연탄구이초벌집 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대농로 62","addressUrl":"http://place.map.kakao.com/128919837","phone":"043-235-2393","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi1r6o6bn17fj6vo","name":"창심관 지웰시티점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로 108","addressUrl":"http://place.map.kakao.com/1502463332","phone":"043-233-6568","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudi24sncfp1wcqklon","name":"산호조개구이","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로110번길 10","addressUrl":"http://place.map.kakao.com/23642035","phone":"043-287-2033","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi2h7kfnde46kdde","name":"막바우","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로110번길 12","addressUrl":"http://place.map.kakao.com/19273916","phone":"043-233-5277","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi2vswimskxkidm4o","name":"고등어청 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로110번길 27","addressUrl":"http://place.map.kakao.com/75663027","phone":"043-231-9233","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi3iv7697fznacgbb","name":"청주숯불닭갈비 고구려","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로110번길 33","addressUrl":"http://place.map.kakao.com/1065321928","phone":"043-231-6001","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi3wo3plycvif67st","name":"고원집","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로 102","addressUrl":"http://place.map.kakao.com/1167332516","phone":"043-237-5219","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi4jn1jg14v78wsob","name":"맛찬들왕소금구이 청주하복대점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 진재로 100","addressUrl":"http://place.map.kakao.com/27516942","phone":"043-238-6692","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi54zipygsr0b3mm","name":"삼대째손두부 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 81","addressUrl":"http://place.map.kakao.com/26505591","phone":"043-231-1253","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi5hen9fj1wetwy9t","name":"소보양본가 복대점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 81","addressUrl":"http://place.map.kakao.com/1610351207","phone":"043-715-3112","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi62mch8scwzz5p8g","name":"진성민속촌(하복대)","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로73번길 61","addressUrl":"http://place.map.kakao.com/1201214068","phone":"043-232-7565","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi6qn27y7yp844b5x","name":"정원뜰","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 89","addressUrl":"http://place.map.kakao.com/211913812","phone":"043-238-1001","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi72v27maxncvjpw2","name":"편편집 청주복대점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 97-8","addressUrl":"http://place.map.kakao.com/1566192591","phone":"043-716-0535","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi7eovbtiouthkldj","name":"어전횟집","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 108-2","addressUrl":"http://place.map.kakao.com/16389350","phone":"043-231-1511","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi7qosozhl9785hys","name":"푸른도횟집","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 죽천로 106-1","addressUrl":"http://place.map.kakao.com/16943632","phone":"043-234-2992","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudi84ccog2l85l5v6","name":"서호장어구이","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로 43-12","addressUrl":"http://place.map.kakao.com/9876074","phone":"043-236-4567","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkimwn8ain0jjw078","name":"삼창수산 청주복대점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로 62","addressUrl":"http://place.map.kakao.com/852863349","phone":"043-239-4988","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudklyhqjrvsqauswma","name":"군산활어도매시장","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 덕암로30번길 38","addressUrl":"http://place.map.kakao.com/17970488","phone":"043-276-3388","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkmpbnmppd6vg1xl9","name":"나경한정식","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 월명로 172","addressUrl":"http://place.map.kakao.com/10194092","phone":"043-273-2900","mobile":"","hasTableSeating":true,"hasPrivateRoom":true,"maxCapacity":0,"memo":""},{"id":"mudkn0gjtyttzjf4vsh","name":"백년회관서서갈비 청주봉명점","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 백봉로 169","addressUrl":"http://place.map.kakao.com/513868780","phone":"043-266-2357","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudknjk9tbvtddk2wph","name":"대명도리탕","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 백봉로 188-1","addressUrl":"http://place.map.kakao.com/16386830","phone":"043-268-2560","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkqev0ti1tkwbgms","name":"청주가야밀면","foodType":"한식","province":"충청북도","city":"청주시","district":"송절동","address":"충북 청주시 흥덕구 송절로 47","addressUrl":"http://place.map.kakao.com/11811112","phone":"043-222-0889","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkqviqq1syt09udk","name":"김산기염소탕 봉명점","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 송절로 84","addressUrl":"http://place.map.kakao.com/432015790","phone":"043-277-1239","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkrdkhnq47n6vdkn","name":"비파해물칼국수","foodType":"한식","province":"충청북도","city":"청주시","district":"송절동","address":"충북 청주시 흥덕구 송화로108번길 32","addressUrl":"http://place.map.kakao.com/666330262","phone":"043-260-9908","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkrx0gmbzx3hcpzig","name":"콩가내","foodType":"한식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 주성로 61","addressUrl":"http://place.map.kakao.com/27415774","phone":"043-217-2996","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkscflolzau2cm57b","name":"삼동소바 청주사천점","foodType":"일식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 주성로 3","addressUrl":"http://place.map.kakao.com/673264925","phone":"043-715-5352","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkswt2g1ttv8qm50o","name":"연촌염소탕 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"신봉동","address":"충북 청주시 흥덕구 사운로359번길 24","addressUrl":"http://place.map.kakao.com/25889838","phone":"043-268-7982","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudktbt4mfihl17h7z","name":"대머리해장국 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"신봉동","address":"충북 청주시 흥덕구 1순환로 396-1","addressUrl":"http://place.map.kakao.com/123575910","phone":"043-268-1007","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkutb4hai8q1f0vwr","name":"고래불막회","foodType":"한식","province":"충청북도","city":"청주시","district":"운천동","address":"충북 청주시 흥덕구 사운로262번길 48","addressUrl":"http://place.map.kakao.com/9689840","phone":"043-272-6363","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkvocarhib86me0v","name":"청주본가 운천본점","foodType":"한식","province":"충청북도","city":"청주시","district":"운천동","address":"충북 청주시 흥덕구 사운로 233","addressUrl":"http://place.map.kakao.com/9513392","phone":"043-271-6080","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkw878uk4d3cwphtf","name":"청주생선구이전문점 정가네","foodType":"한식","province":"충청북도","city":"청주시","district":"운천동","address":"충북 청주시 흥덕구 사운로 199","addressUrl":"http://place.map.kakao.com/1204945904","phone":"043-267-1880","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkx58m803dp81j1al","name":"남도복집","foodType":"한식","province":"충청북도","city":"청주시","district":"운천동","address":"충북 청주시 흥덕구 사운로187번길 2-11","addressUrl":"http://place.map.kakao.com/8876748","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudky90c6jzv064p4pw","name":"제부도바지락손칼국수","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 직지대로581번길 14","addressUrl":"http://place.map.kakao.com/15868075","phone":"043-266-9829","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkymsxw32epdimouc","name":"양자강 봉명점","foodType":"중식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 직지대로 608","addressUrl":"http://place.map.kakao.com/7997180","phone":"043-266-8585","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudkzaamfgcjsibcxtn","name":"청주원산냉면","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 직지대로 611","addressUrl":"http://place.map.kakao.com/17068803","phone":"043-276-3355","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudl2f5dzyaslk8svua","name":"참바다","foodType":"일식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 1순환로 544 1층","addressUrl":"https://place.map.kakao.com/26887609","phone":"043-260-9600","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudl46jjrlqhj6q7zpm","name":"한식경","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 과상미로83번길 16","addressUrl":"http://place.map.kakao.com/16306872","phone":"043-266-0650","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudl5y5c8ko5japb9fe","name":"무교동낙지전문점","foodType":"한식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 1순환로535번길 12 1층","addressUrl":"https://place.map.kakao.com/21245918","phone":"043-271-4475","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudl6ocacgc2htu6wji","name":"고미참치","foodType":"일식","province":"충청북도","city":"청주시","district":"봉명동","address":"충북 청주시 흥덕구 백봉로267번길 6-2","addressUrl":"http://place.map.kakao.com/1568343928","phone":"070-7677-3737","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlbamxtwahef32h1q","name":"대복해장국","foodType":"한식","province":"충청북도","city":"청주시 청원구","district":"사천동","address":"충북 청주시 청원구 율천북로 31 1층","addressUrl":"https://place.map.kakao.com/10242201","phone":"043-212-0634","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlbvr78abn9szxgnh","name":"고려불고기","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 1순환로 357","addressUrl":"http://place.map.kakao.com/10166860","phone":"043-259-6161","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlc9ux5wm9aig4vws","name":"시영순대","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 율천남로 38","addressUrl":"http://place.map.kakao.com/20610960","phone":"043-221-0072","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlddowyid1f37mdsq","name":"24시뼈다귀해장국","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 무심동로 644-1","addressUrl":"http://place.map.kakao.com/16126097","phone":"043-221-3241","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudldprjaxwc3nz9jdc","name":"초가집바지락손칼국수","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 무심동로 642","addressUrl":"http://place.map.kakao.com/9475570","phone":"043-259-5926","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudle2np7pubrp33z6o","name":"마포이모네","foodType":"분식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 무심동로 636","addressUrl":"http://place.map.kakao.com/9764910","phone":"043-255-4374","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlf2qzkqb7uff0nuk","name":"천하대장군","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 직지대로 817","addressUrl":"http://place.map.kakao.com/9967751","phone":"043-221-5289","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudljhphbliyisz5wbg","name":"싱그레복집","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 교서로 134","addressUrl":"http://place.map.kakao.com/11552057","phone":"043-253-2981","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudljumi5oho5udi7m9","name":"샷보로","foodType":"일식","province":"충청북도","city":"청주시","district":"사직동","address":"충북 청주시 서원구 무심서로 609","addressUrl":"http://place.map.kakao.com/14520693","phone":"043-263-8851","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlkb6fwhnqm4xwhpc","name":"모시로","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 무심동로 540-1","addressUrl":"http://place.map.kakao.com/1439991730","phone":"043-231-0000","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlko7mjy7pyaai7e","name":"우암동설렁탕","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 직지대로 844","addressUrl":"http://place.map.kakao.com/15759369","phone":"043-252-8942","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudll02y3pvsac1hia6","name":"삼미족발","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 향군로 35","addressUrl":"http://place.map.kakao.com/9811700","phone":"043-253-8042","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlllndn2ioot6x77p","name":"왕뚝배기감자탕","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 중앙로 144","addressUrl":"http://place.map.kakao.com/11307046","phone":"043-252-0136","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlmb0hqabnm0dh9mg","name":"삼미닭갈비파전","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 상당로 269-17","addressUrl":"http://place.map.kakao.com/15254177","phone":"043-253-3158","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlmt92kr3oah53b","name":"써브웨이 청주대점","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 대성로 301","addressUrl":"http://place.map.kakao.com/13081856","phone":"043-252-8184","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlndxc27umz5y5yot","name":"리정","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 우암로 71-1","addressUrl":"http://place.map.kakao.com/11085093","phone":"043-254-8947","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlnxohgiicnduosnp","name":"우암해장국","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 향군로 88","addressUrl":"http://place.map.kakao.com/16121473","phone":"043-224-1986","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlojadqnjt9i4op4i","name":"얼씨구절씨구","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 중앙로 146","addressUrl":"http://place.map.kakao.com/9236651","phone":"043-222-3486","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlox3jgnefaa1lh4t","name":"손복성돼지갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 중앙로 134","addressUrl":"http://place.map.kakao.com/11735404","phone":"043-223-9229","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlphsz16rqdhix4th","name":"봉용불고기 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 중앙로 108","addressUrl":"http://place.map.kakao.com/16507806","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlpznnxz62ou2r3mj","name":"목포홍어전문점","foodType":"한식","province":"충청북도","city":"청주시","district":"수동","address":"충북 청주시 상당구 상당로190번길 11","addressUrl":"http://place.map.kakao.com/8980955","phone":"043-224-8899","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlqgx6ous4xhzr8j","name":"원조대성옻닭삼계탕","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 교서로110번길 6","addressUrl":"http://place.map.kakao.com/361136528","phone":"043-256-7439","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlqtzphrx8r0smj3","name":"단양생고기촌","foodType":"한식","province":"충청북도","city":"청주시","district":"영동","address":"충북 청주시 상당구 교서로 89","addressUrl":"http://place.map.kakao.com/10258443","phone":"043-257-2500","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlr7l7kl18ucfgsqh","name":"섬섬옥수","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 무심동로 518","addressUrl":"http://place.map.kakao.com/1421515495","phone":"0502-5553-0313","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlrjb9x71asaiqze","name":"무심천매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 무심동로 500","addressUrl":"http://place.map.kakao.com/8982642","phone":"043-259-3550","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlrz9w4gnyda4qr5x","name":"누나랑동생","foodType":"한식","province":"충청북도","city":"청주시","district":"상당구","address":"충북 청주시 상당구 중앙로61번길 8","addressUrl":"http://place.map.kakao.com/600276187","phone":"043-223-8383","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlu9m2v575hbnf1h","name":"군산아구찜","foodType":"한식","province":"충청북도","city":"청주시 상당구","district":"교동","address":"충북 청주시 상당구 교동로3번길 82 1층","addressUrl":"https://place.map.kakao.com/8823563","phone":"043-223-2002","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudluwj57dbandfku8b","name":"산촌에가면","foodType":"한식","province":"충청북도","city":"청주시","district":"수동","address":"충북 청주시 상당구 상당로144번길 33","addressUrl":"http://place.map.kakao.com/9118756","phone":"043-255-0308","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlwija1ww6y47qn3d","name":"송원칼국수","foodType":"한식","province":"충청북두","city":"청주시 상당구","district":"우암동","address":"충북 청주시 상당구 우암산로 5 1층","addressUrl":"https://place.map.kakao.com/10545258","phone":"043-256-5292","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlxh21mhixld2vtah","name":"소영칼국수","foodType":"한식","province":"충청북도","city":"청주시","district":"수동","address":"충북 청주시 상당구 교동로3번길 146","addressUrl":"http://place.map.kakao.com/11892089","phone":"043-224-2642","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlxwbvurzjk0gobg","name":"수암골수제비","foodType":"한식","province":"충청북도","city":"청주시","district":"수동","address":"충북 청주시 상당구 대성로 228","addressUrl":"http://place.map.kakao.com/735164281","phone":"043-294-5000","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudlyuyvszfo38mafi","name":"자연을담은돈까스 본점","foodType":"일식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 수암로88번길 6-1","addressUrl":"http://place.map.kakao.com/14106890","phone":"043-222-0076","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm05s0j8x1qoro6kr","name":"동방생고기정육점식당 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 새터로 46","addressUrl":"http://place.map.kakao.com/20419032","phone":"043-222-3335","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm0ivejwq2ghgleo","name":"청주금용","foodType":"중식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 내덕로 33","addressUrl":"http://place.map.kakao.com/9737653","phone":"043-257-0765","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm2zghlkl3gi59cxd","name":"청주금용","foodType":"중식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 내덕로 33","addressUrl":"http://place.map.kakao.com/9737653","phone":"043-257-0765","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm3x612agfiq6wp7b","name":"원조본가 잔치국수전문점","foodType":"한식","province":"충청북도","city":"청주시","district":"우암동","address":"충북 청주시 청원구 향군로 19-1","addressUrl":"http://place.map.kakao.com/12408687","phone":"043-224-6616","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm4h8gy9qt221ybl","name":"청천순대","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 안덕벌로 17","addressUrl":"http://place.map.kakao.com/16453652","phone":"043-215-8660","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm5b6qrvxj48dxllo","name":"장맛이좋은집","foodType":"한식","province":"충청북도","city":"청주시","district":"내덕동","address":"충북 청주시 청원구 1순환로225번길 44","addressUrl":"http://place.map.kakao.com/12435345","phone":"043-216-3070","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm6iwwlwoptt15y0m","name":"마포주먹구이 2호점율량점","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 사뜸로 43","addressUrl":"http://place.map.kakao.com/9016435","phone":"043-211-8192","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm7fuawgu4r45byt","name":"5.5닭갈비 율량점","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 사뜸로 39","addressUrl":"http://place.map.kakao.com/14686966","phone":"043-241-5055","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm850i2g7im7blh6v","name":"삼대째손두부 율량점","foodType":"한식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 주성로 101","addressUrl":"http://place.map.kakao.com/22177174","phone":"043-215-1252","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm8l91dqjeyhlozm6","name":"입이즐거운그만두","foodType":"분식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 사뜸로 105","addressUrl":"http://place.map.kakao.com/117414142","phone":"043-241-6005","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm91h8nh82kcr0h6","name":"풍천장어 사천점","foodType":"한식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 공항로 177","addressUrl":"http://place.map.kakao.com/18948132","phone":"043-212-7177","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudm9otfjy814q91mgp","name":"UDT수산","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 사뜸로67번길 28","addressUrl":"http://place.map.kakao.com/16119294","phone":"043-211-6453","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmbrzpe1kzvir434n","name":"율량반점","foodType":"중식","province":"충청북도","city":"청주시","district":"사천동","address":"충북 청주시 청원구 사뜸로 92","addressUrl":"http://place.map.kakao.com/45811011","phone":"0503-7153-6067","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmdmwl4rginv6b39j","name":"스시히어로","foodType":"일식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 충청대로 113 칠성빌딩 1층","addressUrl":"https://place.map.kakao.com/1997710013","phone":"웨이팅앱으로","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudme2jhzoj4t59z85a","name":"송광식당","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 율봉로176번길 41","addressUrl":"http://place.map.kakao.com/8387431","phone":"043-213-9595","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmhlbxobj79pl9j2","name":"고부심","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 1순환로 122","addressUrl":"http://place.map.kakao.com/1235896122","phone":"043-214-3345","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmj75tkae36urfo3o","name":"복주머니","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 율봉로187번길 10-8","addressUrl":"http://place.map.kakao.com/8336307","phone":"043-211-2369","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmkx61iec690l8x4l","name":"함지박소머리국밥 증평직영점","foodType":"한식","province":"충청북도","city":"청주시","district":"주성동","address":"충북 청주시 청원구 2순환로 204","addressUrl":"http://place.map.kakao.com/1879187573","phone":"043-216-1212","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudml8bs5x0fgj2r2h8","name":"주성옥","foodType":"한식","province":"충청북도","city":"청주시","district":"주성동","address":"충북 청주시 청원구 주성동 152-1","addressUrl":"http://place.map.kakao.com/1154350557","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmlmeww7fm86j3ns8","name":"달빛에구운고등어 청주율량점","foodType":"한식","province":"충청북도","city":"청주시","district":"주중동","address":"충북 청주시 청원구 충청대로 233","addressUrl":"http://place.map.kakao.com/270682337","phone":"043-212-2333","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmm41iig0ouckhgy","name":"쌍촌본가","foodType":"한식","province":"충청북도","city":"청주시","district":"주성동","address":"충북 청주시 청원구 2순환로160번길 26-21","addressUrl":"http://place.map.kakao.com/297699275","phone":"043-241-5200","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmmn63d7gzed7we76","name":"주성루","foodType":"중식","province":"충청북도","city":"청주시","district":"주성동","address":"충북 청주시 청원구 2순환로160번길 13","addressUrl":"http://place.map.kakao.com/2139737528","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmn4l6zellxvb1ssm","name":"한양시래기명태조림","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 2순환로 30","addressUrl":"http://place.map.kakao.com/709212959","phone":"043-212-4786","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmnib2o9x6k5e1r9","name":"삼창수산 청주율량점","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 상리로 5-1","addressUrl":"http://place.map.kakao.com/708587009","phone":"043-217-4988","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmnw7t1plwss9b6dt","name":"스톤폴스","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 1순환로1896번길 19-33","addressUrl":"http://place.map.kakao.com/1468873102","phone":"0507-1487-2055","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmpd4ai7yl2zm48u","name":"강민주의들밥 율량동","foodType":"한식","province":"충청북도","city":"청주시","district":"율량동","address":"충북 청주시 청원구 1순환로1896번길 45","addressUrl":"https://place.map.kakao.com/500988301","phone":"043-213-8276","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmqmwiq7ytg576nk","name":"노천민물장어 명암저수지","foodType":"한식","province":"충청북도","city":"청주시","district":"명암동","address":"충북 청주시 상당구 명암로 63 B동 3층","addressUrl":"https://place.map.kakao.com/1478328592","phone":"043-222-8790","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmr0izfcss3vylj5","name":"인더키친 청주점","foodType":"양식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 30","addressUrl":"http://place.map.kakao.com/25413156","phone":"043-287-8900","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmrby3bls7opof3qp","name":"백마강참숯민물장어 청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 32","addressUrl":"http://place.map.kakao.com/1058916685","phone":"043-259-1881","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmrsmmch4zoevgtz","name":"소플러스 명암호수점","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 산성로 191","addressUrl":"http://place.map.kakao.com/655943701","phone":"010-8765-7709","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmt2q40xq9pruhfon","name":"소소리","foodType":"일식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 15 1층","addressUrl":"https://place.map.kakao.com/1098362890","phone":"043-224-5801","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmteletif7oyxlmt","name":"훗스테이크 청주점","foodType":"양식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 1순환로1656번길 13","addressUrl":"http://place.map.kakao.com/28971791","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmtw3murpln7h2l8","name":"작은이태리","foodType":"양식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 32","addressUrl":"http://place.map.kakao.com/999470625","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmu8k7o1v4iunc7m","name":"인더키친 청주점","foodType":"양식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 30","addressUrl":"http://place.map.kakao.com/25413156","phone":"043-287-8900","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmujnzo86gi2yz55","name":"오리하우스 도담점","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 32","addressUrl":"http://place.map.kakao.com/522241700","phone":"0503-7150-8895","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmvbp4sqs2zlv08b","name":"동보성 본점","foodType":"중식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 30 5층","addressUrl":"https://place.map.kakao.com/15112549","phone":"0503-5299-9433","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmvp585pofdyxhxfy","name":"푸라닭치킨 청주금천점","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 32","addressUrl":"http://place.map.kakao.com/1558678189","phone":"043-283-9206","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudmvz2rgszouxjbifn","name":"괴강매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 산성로 133-2","addressUrl":"http://place.map.kakao.com/10134658","phone":"043-257-0781","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn0oz1j5qo67u8er","name":"상춘재","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 명암로 32 3층 303호","addressUrl":"https://place.map.kakao.com/346063723","phone":"043-283-3355","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn2skw6ik9vam2ebr","name":"고구마캠프","foodType":"한식","province":"충청북도","city":"청주시","district":"명암동","address":"충북 청주시 상당구 명암로 263","addressUrl":"http://place.map.kakao.com/477163313","phone":"010-4425-9980","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn35lacl1kss81nps","name":"진미집","foodType":"한식","province":"충청북도","city":"청주시","district":"산성동","address":"충북 청주시 상당구 성내로118번길 21","addressUrl":"http://place.map.kakao.com/88900540","phone":"043-252-7860","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn4dh36c01i7n5ox7","name":"송학정","foodType":"한식","province":"충청북도","city":"청주시","district":"산성동","address":"충북 청주시 상당구 성내로124번길 34-1","addressUrl":"https://place.map.kakao.com/10548416","phone":"043-255-8535","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn5epopypik3oixi","name":"옛길어죽","foodType":"한식","province":"충청북도","city":"청주시","district":"산성동","address":"충북 청주시 상당구 명암로 511","addressUrl":"http://place.map.kakao.com/1511106405","phone":"043-221-1258","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn5yrln2h1lfcyxzm","name":"현암묵집","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 산성로 841","addressUrl":"http://place.map.kakao.com/8618518","phone":"043-221-1234","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn6iutd0dgl5e91f7","name":"숲속의둥지","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 삼산길 217-7","addressUrl":"http://place.map.kakao.com/9843938","phone":"043-225-6172","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn73ko4llqhzf8zx6","name":"오소담","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 지산나박실길 4","addressUrl":"http://place.map.kakao.com/16426998","phone":"043-221-7330","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn89qqgpkcw3quvm","name":"중앙식당","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 낭성시내길 13 1층","addressUrl":"https://place.map.kakao.com/10090210","phone":"043-225-9501","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn8ozb88m1oirq6ze","name":"호정","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 산성로 1569","addressUrl":"http://place.map.kakao.com/25039699","phone":"043-297-4567","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudn9cefgf3isz01ekd","name":"산수유피는마을","foodType":"한식","province":"충청북도","city":"청주시","district":"낭성면","address":"충북 청주시 상당구 낭성면 산성로 1635-7","addressUrl":"http://place.map.kakao.com/7910688","phone":"043-284-7722","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnayvwo5oma49tchk","name":"옛날식당","foodType":"한식","province":"충청북도","city":"청주시","district":"미원면","address":"충북 청주시 상당구 미원면 미원시내2길 28","addressUrl":"http://place.map.kakao.com/9312466","phone":"043-297-0180","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudndx43ucbl79288q","name":"한솔가든","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 미원초정로 1262","addressUrl":"http://place.map.kakao.com/8599774","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnfagm839gb41c573","name":"청일가든","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 미원초정로 1302","addressUrl":"http://place.map.kakao.com/9499493","phone":"043-213-9345","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnfwa2t7x3ulq9xk","name":"25시가든","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 신기초정로 675-14","addressUrl":"http://place.map.kakao.com/10054226","phone":"043-212-0300","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnh77ke9hcp71t9i4","name":"토지","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 증평군 증평읍 초정약수로 1039","addressUrl":"https://place.map.kakao.com/9504238","phone":"043-838-4639","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnhr53o2ep8p5gxhb","name":"대청마루전통손짜장","foodType":"중식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 청암로 113","addressUrl":"http://place.map.kakao.com/9311771","phone":"043-214-2900","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnix1zwxrags0p54f","name":"전주밥상","foodType":"한식","province":"충청북도","city":"청주시","district":"내수읍","address":"충북 청주시 청원구 내수읍 청암로 385 1층","addressUrl":"https://place.map.kakao.com/10722055","phone":"043-213-1881","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnqc1cb6r32dasa4t","name":"김산기염소탕 오창본점","foodType":"한식","province":"충청북도","city":"청주시","district":"오창읍","address":"충북 청주시 청원구 오창읍 양청6길 9","addressUrl":"http://place.map.kakao.com/1935012638","phone":"043-293-1239","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnrlemq53l1ul3iff","name":"양지원두막촌","foodType":"한식","province":"충청북도","city":"청주시","district":"오창읍","address":"충북 청주시 청원구 오창읍 오창양지길 15","addressUrl":"http://place.map.kakao.com/958372570","phone":"043-212-8852","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnrxws65exzkazh86","name":"신성당","foodType":"분식","province":"충청북도","city":"청주시","district":"오창읍","address":"충북 청주시 청원구 오창읍 오창양지길 19-8","addressUrl":"http://place.map.kakao.com/1817353062","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnsxnmahcam24m9ta","name":"시장불고기 (2026년 예정)","foodType":"한식","province":"충청북도","city":"청주시","district":"오창읍","address":"충북 청주시 청원구 오창읍 팔결로 709-4","addressUrl":"http://place.map.kakao.com/8440965","phone":"043-217-2022","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnuxyie1rivqz0d9p","name":"곤드레밥집","foodType":"한식","province":"충청북도","city":"진천군","district":"진천읍","address":"충북 진천군 진천읍 문화로 91-8 1층","addressUrl":"https://place.map.kakao.com/11027828","phone":"043-534-1080","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudnyjg5y3mdrxrhcu","name":"느티나무집","foodType":"한식","province":"충청북도","city":"진천군","district":"진천읍","address":"충북 진천군 진천읍 백곡로 1253","addressUrl":"https://place.map.kakao.com/8845076","phone":"043-532-5534","mobile":"010-4747-7575","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudo2jimpuenx1fjz1","name":"농민쉐프 묵은지화련","foodType":"한식","province":"충청북도","city":"진천군","district":"덕산읍","address":"충북 진천군 덕산읍 이영남로 73","addressUrl":"http://place.map.kakao.com/1841347857","phone":"043-536-5191","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudo6he6ws6f97za67s","name":"곤드레","foodType":"한식","province":"충청북도","city":"음성군","district":"금왕읍","address":"충북 음성군 금왕읍 탑골2길 13 1층","addressUrl":"https://place.map.kakao.com/27563720","phone":"043-878-0099","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudu7h9ye8ltbabjjg","name":"대박집","foodType":"한식","province":"","city":"","district":"","address":"충북 옥천군 옥천읍 성왕로 1250","addressUrl":"http://place.map.kakao.com/7825176","phone":"043-733-5788","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudub8r6grcagznpyyv","name":"진성민속촌","foodType":"한식","province":"세종특별자치시","city":"부강면","district":"부강리","address":"세종특별자치시 부강면 청연로 125","addressUrl":"http://place.map.kakao.com/11315154","phone":"044-277-6262","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduburuxmvd7jlwfdp","name":"부강옥 세종 부강본점","foodType":"한식","province":"세종특별자치시","city":"부강면","district":"부강리","address":"세종특별자치시 부강면 부강외천로 103","addressUrl":"http://place.map.kakao.com/887838514","phone":"044-866-3362","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudugcvmpyal35thmgp","name":"승호옻닭","foodType":"한식","province":"충청북도","city":"청주시","district":"현도면","address":"충북 청주시 서원구 현도면 시목외천로 133","addressUrl":"http://place.map.kakao.com/9214690","phone":"043-260-8332","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduh9hw30wbca10jw4","name":"부부농장 문의시내점","foodType":"한식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 대청호반로 834-1","addressUrl":"http://place.map.kakao.com/11614199","phone":"043-298-0841","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduhl99e3flccaw3um","name":"신선매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 대청호반로 822","addressUrl":"http://place.map.kakao.com/8433936","phone":"043-297-4320","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduigdy8sb3agr5aqw","name":"시골집","foodType":"한식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 문의시내로 51 1층","addressUrl":"https://place.map.kakao.com/8443975","phone":"043-297-7055","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduj5f5a9p5v0ev0xm","name":"성남집","foodType":"한식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 상장인차로 25","addressUrl":"http://place.map.kakao.com/8383543","phone":"043-297-8322","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduji39pmvwmdu4jce","name":"나루터가마솥곰탕","foodType":"한식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 미천고은로 73","addressUrl":"http://place.map.kakao.com/1031224923","phone":"043-284-3700","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudujxkglnnt9d4shcd","name":"삼동소바 청주상당점","foodType":"일식","province":"충청북도","city":"청주시","district":"문의면","address":"충북 청주시 상당구 문의면 남계1길 10-1","addressUrl":"http://place.map.kakao.com/457868664","phone":"043-292-8762","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudukllu2qei53vt5ez","name":"삼흥집","foodType":"한식","province":"충청북도","city":"청주시","district":"남일면","address":"충북 청주시 상당구 남일면 단재로 748","addressUrl":"http://place.map.kakao.com/10157791","phone":"043-297-5162","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudukwe29b2tq1m4pas","name":"명성축산물생고기","foodType":"한식","province":"충청북도","city":"청주시","district":"남일면","address":"충북 청주시 상당구 남일면 단재로 734","addressUrl":"http://place.map.kakao.com/10328713","phone":"043-288-4992","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudulphmny26pjodox","name":"새암골송어 청상영어조합법인청주지점","foodType":"한식","province":"충청북도","city":"청주시","district":"남일면","address":"충북 청주시 상당구 남일면 효덕길 2-1","addressUrl":"http://place.map.kakao.com/1201054156","phone":"043-298-8886","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudum1l79uxh8imi3e9","name":"상당솥뚜껑매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"남일면","address":"충북 청주시 상당구 남일면 단재로 478","addressUrl":"http://place.map.kakao.com/433697578","phone":"043-294-9988","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudumnhvnvn5gn5wqti","name":"청주본가누룽지삼계탕","foodType":"한식","province":"충청북도","city":"청주시","district":"장암동","address":"충북 청주시 서원구 가장로 366","addressUrl":"http://place.map.kakao.com/1993681213","phone":"043-297-3339","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudun2g3rfm98xqlj9","name":"통큰솥뚜껑닭볶음탕 청주연꽃정원점","foodType":"한식","province":"충청북도","city":"청주시","district":"장암동","address":"충북 청주시 서원구 가장로353번길 75-9","addressUrl":"http://place.map.kakao.com/890486364","phone":"043-715-1550","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduofjuku6nylelays","name":"부자옛날손짜장","foodType":"중식","province":"충청북도","city":"청주시","district":"장암동","address":"충북 청주시 서원구 궁뜰로 113","addressUrl":"https://place.map.kakao.com/11385984","phone":"043-294-8575","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudupdfxnr073pjcyuk","name":"바보아저씨","foodType":"일식","province":"충청북도","city":"청주시","district":"분평동","address":"충북 청주시 서원구 궁뜰로67번길 42 1층","addressUrl":"https://place.map.kakao.com/1690265777","phone":"043-292-0338","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudupu4d3ybk21akmnf","name":"원조공주칼국수 남부점","foodType":"한식","province":"충청북도","city":"청주시","district":"미평동","address":"충북 청주시 서원구 궁뜰로34번길 81","addressUrl":"http://place.map.kakao.com/25615305","phone":"043-286-8890","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduq63a2ves5ug647p","name":"소연재","foodType":"한식","province":"충청북도","city":"청주시","district":"미평동","address":"충북 청주시 서원구 청남로 1865-6","addressUrl":"http://place.map.kakao.com/12394210","phone":"043-284-6888","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduqm9x2unhtrdktmv","name":"가마리추어탕","foodType":"한식","province":"충청북도","city":"청주시","district":"남이면","address":"충북 청주시 서원구 남이면 2순환로 1689-9","addressUrl":"http://place.map.kakao.com/857772352","phone":"043-286-2494","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudur1gw0q9b7jrmsglr","name":"대청장어가 청주직영점","foodType":"한식","province":"충청북도","city":"청주시","district":"미평동","address":"충북 청주시 서원구 산미로 49","addressUrl":"http://place.map.kakao.com/1395771578","phone":"043-295-9962","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudus3e92ep6l86day4","name":"밀꽃국수정원","foodType":"한식","province":"충청북도","city":"청주시","district":"미평동","address":"충북 청주시 서원구 산미로 67-4","addressUrl":"http://place.map.kakao.com/214590378","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudusgr4wwsk5ts69qh","name":"청주한우청우","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로 3","addressUrl":"http://place.map.kakao.com/1645357793","phone":"043-287-1104","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudut1d5m9fk1tcqx2d","name":"두툼 산남본점","foodType":"일식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로 29","addressUrl":"http://place.map.kakao.com/19223195","phone":"043-292-7997","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudutd63ek09gam8rnm","name":"더덕솥뚜껑삼겹살 산남점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로60번길 3-6","addressUrl":"http://place.map.kakao.com/27449375","phone":"043-287-1219","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudutrt7o22qxjij33","name":"두루찌개삼대","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로28번길 12-1","addressUrl":"http://place.map.kakao.com/21360747","phone":"043-298-2220","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduy8kerbv8jby5ra","name":"팔팔막회&참치","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로30번길 10","addressUrl":"http://place.map.kakao.com/76171700","phone":"043-288-8837","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduyqz5rw7zyitsvop","name":"할머니손칼국수 산남점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로38번길 5","addressUrl":"http://place.map.kakao.com/15669858","phone":"043-296-5885","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduz6vmyk7b880qcu","name":"영계소문참숯닭갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로34번길 35","addressUrl":"http://place.map.kakao.com/27529330","phone":"043-296-2903","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"muduzkq5uqaknhqo5l","name":"인하램","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로60번길 25-14","addressUrl":"http://place.map.kakao.com/2034252318","phone":"043-294-5525","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv0nf1optpte5ry4","name":"몽돌간장게장","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 두꺼비로38번길 37","addressUrl":"http://place.map.kakao.com/1778626428","phone":"043-250-5490","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv3tsh2nflq2ixq3m","name":"육선회관 산남직영점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 산남로 38","addressUrl":"http://place.map.kakao.com/725197858","phone":"043-292-8583","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv46eatk327d3yh6","name":"미인계 산남점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로100번길 76","addressUrl":"http://place.map.kakao.com/1792473274","phone":"043-283-8123","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv4nqu3jc3lm7n63a","name":"원흥닭발통닭 본점","foodType":"한식","province":"","city":"","district":"","address":"","addressUrl":"https://place.map.kakao.com/23211431","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv5j7g9sefwqxk4m","name":"민걸민걸","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 산남로24번길 23-1","addressUrl":"http://place.map.kakao.com/26934996","phone":"0502-5550-4675","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv5tdmisiuwqpcw2","name":"참치타임","foodType":"일식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 산남로24번길 17-1","addressUrl":"http://place.map.kakao.com/17318292","phone":"043-287-3782","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv69o983fb9zc6ojv","name":"토담순대 산남점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로100번길 27-22","addressUrl":"http://place.map.kakao.com/14650158","phone":"043-295-9635","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv6nbrmio2znf732","name":"장수명태찜","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로80번길 31-5","addressUrl":"http://place.map.kakao.com/26934731","phone":"043-223-3083","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv6yrsornys4hznkh","name":"또또와 청주본점","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로80번길 31-1","addressUrl":"http://place.map.kakao.com/10369088","phone":"043-253-5157","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv7d6f4ig97ovqnx","name":"전여사불닭발","foodType":"한식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로80번길 31-2","addressUrl":"http://place.map.kakao.com/25018916","phone":"043-288-1014","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv8n98e97xu1ghxv","name":"온돌짜장 본점","foodType":"중식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 원흥로80번길 24","addressUrl":"http://place.map.kakao.com/199870536","phone":"043-292-5126","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv9ecuy0ssedknsb","name":"도안동감나무집 청주점","foodType":"한식","province":"","city":"","district":"","address":"","addressUrl":"https://place.map.kakao.com/12714515","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudv9ref9wkrgf2vys","name":"필란","foodType":"중식","province":"충청북도","city":"청주시","district":"산남동","address":"충북 청주시 서원구 산남로24번길 24-2","addressUrl":"http://place.map.kakao.com/1556018712","phone":"043-288-5678","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvck1f78w5iu3texq","name":"해담","foodType":"한식","province":"충청북도","city":"청주시","district":"성화동","address":"충북 청주시 서원구 구룡산로 118","addressUrl":"https://place.map.kakao.com/880243995","phone":"050-7145-5100","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvdqo2qmnawrmpri","name":"민석매실농장","foodType":"한식","province":"충청북도","city":"청주시","district":"성화동","address":"충북 청주시 서원구 성화로 20-58","addressUrl":"http://place.map.kakao.com/15712617","phone":"","mobile":"010-4873-3531","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudve7zk76xrnokmupn","name":"죽림홍두깨칼국수보쌈","foodType":"한식","province":"충청북도","city":"청주시","district":"죽림동","address":"충북 청주시 서원구 2순환로 1471","addressUrl":"http://place.map.kakao.com/431538635","phone":"043-236-7161","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvem18tdmqzeavbn","name":"단풍나무석갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"죽림동","address":"충북 청주시 서원구 대림로 414","addressUrl":"http://place.map.kakao.com/1382269985","phone":"043-232-0701","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudveyywfpo8gijt5jq","name":"원조중원탑막국수 청주죽림점","foodType":"한식","province":"충청북도","city":"청주시","district":"죽림동","address":"충북 청주시 서원구 대림로 391","addressUrl":"http://place.map.kakao.com/639332066","phone":"043-233-1343","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvgcttflxecwpavds","name":"죽림동 대추나무집","foodType":"한식","province":"충청북도","city":"청주시","district":"죽림동","address":"충북 청주시 서원구 대림로421번길 4","addressUrl":"http://place.map.kakao.com/1385346074","phone":"043-235-9230","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvgpvs0i7w7fprb5br","name":"김가네더덕밥","foodType":"한식","province":"","city":"","district":"","address":"","addressUrl":"https://place.map.kakao.com/17389347","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvh6haoo73pkxwgnb","name":"청주 대산보리밥","foodType":"한식","province":"충청북도","city":"청주시","district":"죽림동","address":"충북 청주시 서원구 성화로69번길 43-23","addressUrl":"http://place.map.kakao.com/277549966","phone":"043-231-7017","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvibchjnawne69fvg","name":"대머리해장국 1호점","foodType":"한식","province":"충청북도","city":"청주시","district":"성화동","address":"충북 청주시 서원구 성화로 24","addressUrl":"https://place.map.kakao.com/2016474965","phone":"043-237-9980","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudviqwfx2raqb76qp7","name":"뱃놈","foodType":"한식","province":"충청북도","city":"청주시","district":"성화동","address":"충북 청주시 서원구 성화동 98-3","addressUrl":"http://place.map.kakao.com/27351485","phone":"043-272-0089","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvj752893qvrli947","name":"자성화맛집코다리네 청주석곡점","foodType":"한식","province":"충청북도","city":"청주시","district":"석곡동","address":"충북 청주시 흥덕구 서부로1168번길 31-23","addressUrl":"http://place.map.kakao.com/1849163669","phone":"043-236-0008","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvjvrof4etfxnq7v","name":"본궁석갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 가포산로 197","addressUrl":"http://place.map.kakao.com/8328736","phone":"043-233-0006","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvl38j6bfcoaqqb34","name":"한상","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 가포산로 200","addressUrl":"https://place.map.kakao.com/1283541795","phone":"043-234-4547","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvmfweubr6u0rxhrg","name":"삼대째손두부","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 가포산로 197","addressUrl":"https://place.map.kakao.com/1469091178","phone":"043-236-9007","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvmv0zcig0xhi47hs","name":"송림유황오리","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 강서로1번길 48-20","addressUrl":"http://place.map.kakao.com/9155271","phone":"043-236-3000","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvnhiseamp27uomvq","name":"황할머니갈비집 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 강서로27번길 9-6","addressUrl":"http://place.map.kakao.com/8168204","phone":"0503-7153-9779","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvnwkmkpjs3z22fls","name":"수이재1928","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 강서로71번길 4","addressUrl":"http://place.map.kakao.com/244084380","phone":"043-235-1928","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudvz3pwwus9owqq1wl","name":"금성식당","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 강서로 77","addressUrl":"http://place.map.kakao.com/1097017268","phone":"043-231-7597","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw0c5dapt3mvs5kt9","name":"한라산","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 강서로 83-1 2층","addressUrl":"https://place.map.kakao.com/17252439","phone":"043-255-8500","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw0uz41fir5g09oje","name":"초원흑염소","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 가로수로1154번길 6-5","addressUrl":"http://place.map.kakao.com/511512598","phone":"043-233-8859","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw1dxccam8lulf5qj","name":"오송흑염소탕전문","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 가로수로1164번길 7-4","addressUrl":"http://place.map.kakao.com/10636329","phone":"043-231-1700","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw236aiykcjr5a49","name":"강서회센타","foodType":"한식","province":"충청북도","city":"청주시","district":"강서동","address":"충북 청주시 흥덕구 가로수로1164번길 10-4","addressUrl":"http://place.map.kakao.com/10127499","phone":"043-233-7150","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw354a57d6tlqh8k5","name":"삼학도수산","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 비하로 30","addressUrl":"https://place.map.kakao.com/11142072","phone":"043-273-8307","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw44wsqessptz9sps","name":"무쇠돌이김치삼겹살","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 비하로52번길 10","addressUrl":"http://place.map.kakao.com/8310820","phone":"043-232-0280","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw4moidcftqojhqyq","name":"산청꿀갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1124","addressUrl":"http://place.map.kakao.com/851237414","phone":"0502-5553-2221","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw4zg2cywqokvkuhc","name":"황소처럼 참숯통갈매기살 비하본점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로1124번길 16","addressUrl":"http://place.map.kakao.com/12767927","phone":"043-236-7003","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw5umxkqzjstq5mq","name":"한양생고기","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1110 1층","addressUrl":"https://place.map.kakao.com/9580044","phone":"043-231-6692","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw6a2keh5gmgtn4u","name":"팔팔문어전복탕 청주본점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1094","addressUrl":"http://place.map.kakao.com/1227946647","phone":"043-237-8849","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw6mp5d3rbtl19wr7","name":"청림생오리구이전문점","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 청향로 6","addressUrl":"http://place.map.kakao.com/9965525","phone":"043-233-5295","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw7t4fai64csnvl5t","name":"청주조개구이무한리필","foodType":"한식","province":"충청북도","city":"청주시","district":"비하동","address":"충북 청주시 흥덕구 2순환로 1052","addressUrl":"http://place.map.kakao.com/535541769","phone":"050-7142-8774","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw989w8r85r7eyh9m","name":"신정골전통뼈해장국 청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로 14","addressUrl":"http://place.map.kakao.com/7980328","phone":"043-232-0332","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudw9lm3thvdpffn6mm","name":"명동보리밥 청주점","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로18번길 5-2","addressUrl":"http://place.map.kakao.com/16121833","phone":"043-236-3392","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwa33ubjufmry6b9","name":"25시해장국","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로 20","addressUrl":"http://place.map.kakao.com/15928522","phone":"043-235-8070","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwaeh9y6frna8x8so","name":"풍천섯다장어","foodType":"한식","province":"충청북도","city":"청주시","district":"복대동","address":"충북 청주시 흥덕구 대신로10번길 16-12","addressUrl":"http://place.map.kakao.com/7942495","phone":"043-236-8520","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwbbg6zu90q5mc3v","name":"섯다장어참숯불구이","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 용담로 124","addressUrl":"http://place.map.kakao.com/10492497","phone":"043-255-9696","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwbn8op4evuuar7ah","name":"야생토종닭","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 용담로 129-1","addressUrl":"http://place.map.kakao.com/18618795","phone":"043-222-8733","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwbzqc2og63hoe2vd","name":"괴강매운탕","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 산성로 133-2","addressUrl":"http://place.map.kakao.com/10134658","phone":"043-257-0781","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwcva7nfeye9ao4br","name":"가장맛있는족발 금천광장점","foodType":"한식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 산성로104번길 21","addressUrl":"http://place.map.kakao.com/1571463653","phone":"043-288-5849","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwd9zx0v0vdqyie7zl","name":"슈퍼막회 금천점","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 산성로92번길 27","addressUrl":"http://place.map.kakao.com/931919726","phone":"043-287-1633","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwdk3cmoajd6x2w3m","name":"금천닭갈비파전 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 산성로92번길 13","addressUrl":"http://place.map.kakao.com/1028998617","phone":"043-264-3158","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwearugdk1eb7cb2h","name":"스시이안앤 청주금천점","foodType":"일식","province":"충청북도","city":"청주시","district":"용담동","address":"충북 청주시 상당구 산성로104번길 11","addressUrl":"http://place.map.kakao.com/635538802","phone":"","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudweyuqqaql7df932b","name":"시골생고기","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 중고개로 333","addressUrl":"http://place.map.kakao.com/1265495650","phone":"043-222-9975","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwf924f3wxmd8hr4l","name":"24시전주명가콩나물국밥 청주금천점","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 중고개로337번길 1-1","addressUrl":"http://place.map.kakao.com/1716437185","phone":"043-224-8880","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwfrmhc8cggfvwv8c","name":"꾸어본조개바다 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 산성로 60","addressUrl":"http://place.map.kakao.com/1452862808","phone":"043-273-5255","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwghc1s2jmr39ukba","name":"춘향고을남원추어탕","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 중고개로337번길 55-1 1층","addressUrl":"https://place.map.kakao.com/826479581","phone":"043-256-7200","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwid2pjyekcqt1ls","name":"베이징","foodType":"중식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 산성로 42 1층","addressUrl":"https://place.map.kakao.com/1352584964","phone":"043-254-2226","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwis21p46qemu6y","name":"좋아식당","foodType":"한식","province":"충청북도","city":"청주시","district":"탑동","address":"충북 청주시 상당구 산성로 29","addressUrl":"http://place.map.kakao.com/16771763","phone":"043-252-6097","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwj8x2g8lo20nnw4j","name":"속리산산채순대","foodType":"한식","province":"충청북도","city":"청주시","district":"탑동","address":"충북 청주시 상당구 산성로11번길 2-2","addressUrl":"http://place.map.kakao.com/7952454","phone":"043-259-0777","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwmqwlytg5ynei6or","name":"골목식당","foodType":"한식","province":"충청북도","city":"청주시","district":"영운동","address":"충북 청주시 상당구 수영로118번길 18-1","addressUrl":"https://place.map.kakao.com/8747644","phone":"043-256-0072","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwpb1xvutv5wpu4x","name":"황미방앗간 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 1순환로1480번길 11-12","addressUrl":"http://place.map.kakao.com/111064131","phone":"043-295-7777","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwpvhs7tbu16jaes3","name":"길성이 본점","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 이정골로 13","addressUrl":"http://place.map.kakao.com/823599289","phone":"043-296-7777","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwq152c4u5ii6a8eu","name":"천리향","foodType":"중식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 1순환로1514번길 31","addressUrl":"http://place.map.kakao.com/8082601","phone":"043-288-9600","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwqjo95jqfa66rik","name":"천농장식당","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로203번길 36-1","addressUrl":"http://place.map.kakao.com/9967374","phone":"043-294-8956","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwrkxsojhjo7qn94g","name":"용정진갈비","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로 155","addressUrl":"http://place.map.kakao.com/27145744","phone":"070-8922-0828","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwscsdenod132a0tk","name":"챠이84","foodType":"중식","province":"충청북도","city":"청주시","district":"용암동","address":"충북 청주시 상당구 용암북로 198","addressUrl":"http://place.map.kakao.com/1066106402","phone":"043-285-2966","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwt8xlikt5fnnwrgr","name":"용암골","foodType":"한식","province":"충청북도","city":"청주시","district":"용암동","address":"충북 청주시 상당구 용암북로200번길 2","addressUrl":"https://place.map.kakao.com/24663868","phone":"043-288-5688","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwtls5ixsiddbchx","name":"한마당손칼국수","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 호미로 187","addressUrl":"http://place.map.kakao.com/8637300","phone":"043-285-2433","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwty22v3xv60upkj","name":"용자1 용정점","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로187번길 3","addressUrl":"http://place.map.kakao.com/436703336","phone":"043-285-0070","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwuxyb7zexa1apk0a","name":"어보회수산","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 호미로202번길 5","addressUrl":"http://place.map.kakao.com/1507102769","phone":"043-286-5553","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwwc58tr9cwpo6ykd","name":"곱창나라","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로163번길 6 1층","addressUrl":"https://place.map.kakao.com/13621248","phone":"043-222-8008","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwxcp7tleielor2xq","name":"즐거운나의집돌솥밥전문점","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로153번길 36 1층","addressUrl":"https://place.map.kakao.com/19149140","phone":"043-298-5285","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwxqd3kpy9iowl2e","name":"한마음정육점식당","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 영운천로129번길 53-1","addressUrl":"http://place.map.kakao.com/15786836","phone":"043-257-4056","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwy2si4qym1zornnu","name":"용정당우동","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 영운천로145번길 28","addressUrl":"http://place.map.kakao.com/19718860","phone":"043-288-5772","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudwz8op3f4fx22nlf3","name":"목포뻘낙지","foodType":"한식","province":"충청북도","city":"청주시","district":"용정동","address":"충북 청주시 상당구 중고개로215번길 9","addressUrl":"https://place.map.kakao.com/10332595","phone":"215-9","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""},{"id":"mudx1yffqt1yv87m95","name":"헛개부대찌개","foodType":"한식","province":"충청북도","city":"청주시","district":"금천동","address":"충북 청주시 상당구 꽃산동로8번길 5","addressUrl":"http://place.map.kakao.com/17896539","phone":"043-253-2562","mobile":"","hasTableSeating":true,"hasPrivateRoom":false,"maxCapacity":0,"memo":""}];
+const _st = JSON.parse(localStorage.getItem('matjib_v1') || 'null');
+let DB = (_st && _st.length >= _emb.length) ? _st : _emb;
+if (DB === _emb) persist();
+let editId = null;
+let formState = {};
+
+const F = {
+  search: '', food: '', tableSeating: false,
+  privateRoom: false, prov: '', city: '', dist: ''
+};
+
+let showRegion = false;
+
+function persist() { localStorage.setItem('matjib_v1', JSON.stringify(DB)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── SAMPLE DATA ───────────────────────────────────────────────────
+if (DB.length === 0) {
+  DB = [
+    { id: uid(), name: '참나무 한우', foodType: '한식', province: '충청북도', city: '청주시', district: '서원구',
+      address: '충청북도 청주시 서원구 사직대로 123', addressUrl: '',
+      phone: '043-000-1234', hasTableSeating: true, hasPrivateRoom: true, maxCapacity: 80, memo: '한우 특선 추천, 점심 특선 2만원' },
+    { id: uid(), name: '도쿄라멘', foodType: '일식', province: '충청북도', city: '청주시', district: '흥덕구',
+      address: '충청북도 청주시 흥덕구 복대동 45', addressUrl: '',
+      phone: '043-000-5678', hasTableSeating: true, hasPrivateRoom: false, maxCapacity: 30, memo: '돈코츠 라멘 강추' },
+    { id: uid(), name: '왕복집 분식', foodType: '분식', province: '충청북도', city: '청주시', district: '상당구',
+      address: '충청북도 청주시 상당구 북문로 77', addressUrl: '',
+      phone: '043-000-9999', hasTableSeating: false, hasPrivateRoom: false, maxCapacity: 20, memo: '떡볶이+순대 세트 최고' },
+  ];
+  persist();
+}
+
+// ── FILTER ────────────────────────────────────────────────────────
+function filtered() {
+  return DB.filter(r => {
+    const q = F.search.toLowerCase();
+    if (q && !r.name.toLowerCase().includes(q) &&
+        !(r.address||'').toLowerCase().includes(q) &&
+        !(r.province||'').toLowerCase().includes(q) &&
+        !(r.city||'').toLowerCase().includes(q) &&
+        !(r.district||'').toLowerCase().includes(q)) return false;
+    if (F.food && r.foodType !== F.food) return false;
+    if (F.tableSeating && !r.hasTableSeating) return false;
+    if (F.privateRoom && !r.hasPrivateRoom) return false;
+    if (F.prov && r.province !== F.prov) return false;
+    if (F.city && r.city !== F.city) return false;
+    if (F.dist && r.district !== F.dist) return false;
+    return true;
+  });
+}
+
+// ── REGION DROPDOWNS ──────────────────────────────────────────────
+function uniq(arr) { return [...new Set(arr.filter(Boolean))].sort(); }
+
+function buildRegionDropdowns() {
+  const provs = uniq(DB.map(r => r.province));
+  const cities = uniq(DB.filter(r => !F.prov || r.province === F.prov).map(r => r.city));
+  const dists = uniq(DB.filter(r =>
+    (!F.prov || r.province === F.prov) && (!F.city || r.city === F.city)
+  ).map(r => r.district));
+
+  const sp = document.getElementById('selProv');
+  const sc = document.getElementById('selCity');
+  const sd = document.getElementById('selDist');
+
+  sp.innerHTML = '<option value="">도·시 전체</option>' + provs.map(v =>
+    `<option value="${esc(v)}" ${F.prov===v?'selected':''}>${esc(v)}</option>`).join('');
+  sc.innerHTML = '<option value="">시·군·구 전체</option>' + cities.map(v =>
+    `<option value="${esc(v)}" ${F.city===v?'selected':''}>${esc(v)}</option>`).join('');
+  sd.innerHTML = '<option value="">동·읍·면 전체</option>' + dists.map(v =>
+    `<option value="${esc(v)}" ${F.dist===v?'selected':''}>${esc(v)}</option>`).join('');
+}
+
+function onProvChange() {
+  F.prov = document.getElementById('selProv').value;
+  F.city = ''; F.dist = '';
+  buildRegionDropdowns(); render();
+}
+function onCityChange() {
+  F.city = document.getElementById('selCity').value;
+  F.dist = '';
+  buildRegionDropdowns(); render();
+}
+function onDistChange() {
+  F.dist = document.getElementById('selDist').value;
+  render();
+}
+
+function toggleRegion() {
+  showRegion = !showRegion;
+  document.getElementById('regionArea').style.display = showRegion ? 'block' : 'none';
+  document.getElementById('chipRegion').classList.toggle('on', showRegion);
+  if (showRegion) buildRegionDropdowns();
+  if (!showRegion) { F.prov=''; F.city=''; F.dist=''; render(); }
+}
+
+// ── FILTER HANDLERS ───────────────────────────────────────────────
+function onSearch(v) {
+  F.search = v;
+  document.getElementById('btnClear').style.display = v ? 'block' : 'none';
+  render();
+}
+function clearSearch() {
+  F.search = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('btnClear').style.display = 'none';
+  render();
+}
+function setFood(btn, v) {
+  F.food = v;
+  document.querySelectorAll('#foodChips .chip').forEach(c => c.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+function toggleChip(key, id) {
+  F[key] = !F[key];
+  document.getElementById(id).classList.toggle('on', F[key]);
+  render();
+}
+
+// ── RENDER LIST ───────────────────────────────────────────────────
+function render() {
+  const list = filtered().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const el = document.getElementById('list');
+  document.getElementById('stats').textContent = `총 ${DB.length}개 중 ${list.length}개 표시`;
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty">
+      <div class="emo">🔍</div>
+      <div class="t1">${DB.length===0 ? '아직 맛집이 없어요' : '검색 결과가 없어요'}</div>
+      <div class="t2">${DB.length===0 ? '오른쪽 위 + 버튼으로 추가해보세요!' : '필터를 조정해보세요'}</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(r => {
+    const region = [r.province, r.city, r.district].filter(Boolean).join(' ');
+    const badges = [];
+    if (r.hasTableSeating) badges.push('🪑 입식');
+    else badges.push('🍃 좌식');
+    if (r.hasPrivateRoom) badges.push('🚪 단독룸');
+    if (r.maxCapacity) badges.push(`👥 최대 ${r.maxCapacity}명`);
+    return `
+      <div class="card" onclick="openDetail('${r.id}')">
+        <div class="card-top">
+          <div class="card-name">${esc(r.name)}</div>
+          <span class="ftag ft-${esc(r.foodType)}">${esc(r.foodType)}</span>
+        </div>
+        ${region ? `<div class="card-region">📍 ${esc(region)}</div>` : ''}
+        ${r.address ? `<div class="card-addr">🏠 ${esc(r.address)}</div>` : ''}
+        <div class="card-badges">${badges.map(b => `<span class="badge">${b}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────
+function openDetail(id) {
+  const r = DB.find(x => x.id === id);
+  if (!r) return;
+  const region = [r.province, r.city, r.district].filter(Boolean).join(' ');
+  const hasNav = r.addressUrl || r.address;
+  const sheet = document.getElementById('detailSheet');
+
+  sheet.innerHTML = `
+    <div class="handle"></div>
+    <div class="d-head">
+      <div class="d-name">${esc(r.name)}</div>
+      <span class="ftag ft-${esc(r.foodType)}" style="font-size:13px;padding:5px 13px">${esc(r.foodType)}</span>
+    </div>
+
+    ${region ? `<div class="d-addr-box">
+      <div class="d-addr-lbl">지역</div>
+      <div class="d-addr-val">📍 ${esc(region)}</div>
+    </div>` : ''}
+
+    ${r.address ? `<div class="d-addr-box" style="margin-top:-8px">
+      <div class="d-addr-lbl">주소</div>
+      <div class="d-addr-val">🏠 ${esc(r.address)}</div>
+    </div>` : ''}
+
+    <div class="d-grid">
+      <div class="d-item">
+        <div class="d-lbl">좌석 형태</div>
+        <div class="d-val">${r.hasTableSeating ? '🪑 입식' : '🍃 좌식'}</div>
+      </div>
+      <div class="d-item">
+        <div class="d-lbl">단독룸</div>
+        <div class="d-val">${r.hasPrivateRoom ? '✅ 있음' : '❌ 없음'}</div>
+      </div>
+      ${r.maxCapacity ? `<div class="d-item">
+        <div class="d-lbl">최대 수용인원</div>
+        <div class="d-val">👥 ${r.maxCapacity}명</div>
+      </div>` : ''}
+    </div>
+
+    ${r.memo ? `<div class="d-memo">📝 ${esc(r.memo)}</div>` : ''}
+
+    ${r.phone ? `<a class="btn-phone" href="tel:${esc(r.phone)}">📞 ${esc(r.phone)} <span style="font-size:12px;opacity:0.7">(유선)</span></a>` : ''}
+    ${r.mobile ? `<a class="btn-phone" href="tel:${esc(r.mobile)}" style="background:#E8F0FE;color:#1565C0;border-color:#C5D5F5">📱 ${esc(r.mobile)} <span style="font-size:12px;opacity:0.7">(휴대폰)</span></a>` : ''}
+
+    ${hasNav ? `<button class="btn-kakao" onclick="goKakao('${esc(r.address||'')}','${esc(r.addressUrl||'')}')">
+      🗺️ 카카오맵으로 길찾기
+    </button>` : ''}
+
+    <div class="d-actions">
+      <button class="btn-edit" onclick="closeDetail();openEdit('${r.id}')">✏️ 수정</button>
+      <button class="btn-del" onclick="doDelete('${r.id}')">🗑️ 삭제</button>
+    </div>
+    <button class="btn-close" onclick="closeDetailBtn()">닫기</button>
+  `;
+
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(e) {
+  if (!e || e.target === document.getElementById('detailOverlay')) {
+    document.getElementById('detailOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+function closeDetailBtn() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function goKakao(addr, url) {
+  if (url && url.startsWith('http')) window.open(url, '_blank');
+  else if (addr) window.open('https://map.kakao.com/?q=' + encodeURIComponent(addr), '_blank');
+}
+
+function doDelete(id) {
+  if (!confirm('이 맛집을 삭제할까요?')) return;
+  DB = DB.filter(r => r.id !== id);
+  persist();
+  closeDetailBtn();
+  if (showRegion) buildRegionDropdowns();
+  render();
+}
+
+// ── FORM ──────────────────────────────────────────────────────────
+function openAdd() {
+  editId = null;
+  formState = { tableSeating: true, privateRoom: false };
+  buildForm(null);
+  document.getElementById('formOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('formSheet').scrollTop = 0;
+  }));
+}
+
+function openEdit(id) {
+  editId = id;
+  const r = DB.find(x => x.id === id);
+  formState = { tableSeating: r.hasTableSeating, privateRoom: r.hasPrivateRoom };
+  buildForm(r);
+  document.getElementById('formOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('formSheet').scrollTop = 0;
+  }));
+}
+
+function closeForm(e) {
+  if (!e || e.target === document.getElementById('formOverlay')) {
+    document.getElementById('formOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    editId = null;
+  }
+}
+function closeFormBtn() {
+  document.getElementById('formOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  editId = null;
+}
+
+function buildForm(r) {
+  const isEdit = !!r;
+  const sheet = document.getElementById('formSheet');
+  const foodOpts = ['한식','중식','일식','양식','분식'];
+  const hasKey = !!localStorage.getItem('kakao_js_key');
+
+  sheet.innerHTML = `
+    <div class="handle"></div>
+    <div class="sheet-title">${isEdit ? '맛집 수정' : '새 맛집 추가'}</div>
+
+    <div class="import-box">
+      <div class="import-title">🔗 카카오맵 URL로 자동입력</div>
+      <div class="import-row">
+        <input id="fUrl" class="fi" type="url" inputmode="url"
+               style="flex:1;font-size:14px;padding:10px 12px"
+               placeholder="카카오맵 공유 URL 붙여넣기" value="${esc(r?.addressUrl||'')}">
+        <button type="button" class="btn-import" onclick="importUrl()">불러오기</button>
+      </div>
+      <div id="importStatus" class="import-status" style="color:var(--text3)">
+        카카오맵 앱 → 장소 검색 → 공유 → 링크 복사 후 붙여넣기
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">식당 이름 <span class="req">*</span></label>
+      <input id="fName" class="fi req-f" lang="ko" placeholder="예: 할머니 손칼국수" value="${esc(r?.name||'')}">
+    </div>
+
+    <div class="fg">
+      <label class="fl">음식 종류 <span class="req">*</span></label>
+      <select id="fFood" class="fsel req-f">
+        ${foodOpts.map(t=>`<option value="${t}" ${r?.foodType===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="fg">
+      <label class="fl">지역</label>
+      <div class="frow3">
+        <input id="fProv" class="fi req-f" lang="ko" placeholder="도·시" value="${esc(r?.province||'')}" list="dl-prov" autocomplete="off">
+        <input id="fCity" class="fi req-f" lang="ko" placeholder="시·군·구" value="${esc(r?.city||'')}" list="dl-city" autocomplete="off">
+        <input id="fDist" class="fi req-f" lang="ko" placeholder="동·읍·면" value="${esc(r?.district||'')}" list="dl-dist" autocomplete="off">
+        <datalist id="dl-prov">${[...new Set(DB.map(r=>r.province).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+        <datalist id="dl-city">${[...new Set(DB.map(r=>r.city).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+        <datalist id="dl-dist">${[...new Set(DB.map(r=>r.district).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">주소</label>
+      <input id="fAddr" class="fi req-f" lang="ko" placeholder="예: 서울 강남구 역삼동 123-4" value="${esc(r?.address||'')}">
+    </div>
+
+    <div class="fg">
+      <label class="fl">전화번호 <span style="font-weight:400;color:var(--text3);font-size:12px">(유선)</span></label>
+      <input id="fPhone" class="fi req-f" type="tel" placeholder="0431234567 (하이픈 없이)" value="${esc(r?.phone||'')}" oninput="fmtPhone(this)">
+    </div>
+
+    <div class="fg">
+      <label class="fl">휴대폰 번호 <span style="font-weight:400;color:var(--text3);font-size:12px">(수기 입력)</span></label>
+      <input id="fMobile" class="fi req-f" type="tel" placeholder="01012345678 (하이픈 없이)" value="${esc(r?.mobile||'')}" oninput="fmtPhone(this)">
+    </div>
+
+    <div class="fg">
+      <label class="fl">입식 여부</label>
+      <div class="toggle-row">
+        <button class="tgl ${formState.tableSeating?'on':''}" id="tblY" onclick="setTgl('table',true)">🪑 입식 (테이블)</button>
+        <button class="tgl ${!formState.tableSeating?'on':''}" id="tblN" onclick="setTgl('table',false)">🍃 좌식 (바닥)</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">단독룸 여부</label>
+      <div class="toggle-row">
+        <button class="tgl ${formState.privateRoom?'on':''}" id="rmY" onclick="setTgl('room',true)">✅ 있음</button>
+        <button class="tgl ${!formState.privateRoom?'on':''}" id="rmN" onclick="setTgl('room',false)">❌ 없음</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">최대 수용 인원</label>
+      <input id="fCap" class="fi" type="number" inputmode="numeric" placeholder="명 (숫자만)" min="1" max="9999" value="${r?.maxCapacity||''}">
+    </div>
+
+    <div class="fg">
+      <label class="fl">메모</label>
+      <textarea id="fMemo" class="fta" lang="ko" rows="3" placeholder="추천 메뉴, 주차, 특이사항 등...">${esc(r?.memo||'')}</textarea>
+    </div>
+
+    <button class="btn-save" onclick="submitForm()">${isEdit ? '수정 완료' : '추가하기'}</button>
+    <button class="btn-cancel" onclick="closeFormBtn()">취소</button>
+  `;
+}
+
+function setTgl(type, val) {
+  if (type === 'table') {
+    formState.tableSeating = val;
+    document.getElementById('tblY').classList.toggle('on', val);
+    document.getElementById('tblN').classList.toggle('on', !val);
+  } else {
+    formState.privateRoom = val;
+    document.getElementById('rmY').classList.toggle('on', val);
+    document.getElementById('rmN').classList.toggle('on', !val);
+  }
+}
+
+function submitForm() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { alert('식당 이름을 입력해주세요.'); return; }
+
+  const cap = parseInt(document.getElementById('fCap').value) || 0;
+  const data = {
+    id: editId || uid(),
+    name,
+    foodType: document.getElementById('fFood').value,
+    province: document.getElementById('fProv').value.trim(),
+    city: document.getElementById('fCity').value.trim(),
+    district: document.getElementById('fDist').value.trim(),
+    address: document.getElementById('fAddr').value.trim(),
+    addressUrl: document.getElementById('fUrl').value.trim(),
+    phone: document.getElementById('fPhone').value.trim(),
+    mobile: document.getElementById('fMobile').value.trim(),
+    hasTableSeating: formState.tableSeating,
+    hasPrivateRoom: formState.privateRoom,
+    maxCapacity: cap,
+    memo: document.getElementById('fMemo').value.trim(),
+  };
+
+  if (editId) {
+    const idx = DB.findIndex(r => r.id === editId);
+    DB[idx] = data;
+  } else {
+    DB.push(data);
+  }
+
+  persist();
+  closeFormBtn();
+  if (showRegion) buildRegionDropdowns();
+  render();
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('settKey').value = localStorage.getItem('kakao_js_key') || '';
+  document.getElementById('settOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSett(e) {
+  if (!e || e.target === document.getElementById('settOverlay')) closeSettBtn();
+}
+function closeSettBtn() {
+  document.getElementById('settOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function saveSettings() {
+  const key = document.getElementById('settKey').value.trim();
+  localStorage.setItem('kakao_js_key', key);
+  sdkReady = false; sdkPromise = null;
+  closeSettBtn();
+  alert(key ? '✅ API 키가 저장됐어요!' : '🗑️ API 키가 삭제됐어요.');
+}
+
+// ── KAKAO SDK ─────────────────────────────────────────────────────
+let sdkReady = false, sdkPromise = null;
+
+function loadSdk() {
+  const key = localStorage.getItem('kakao_js_key') || '';
+  if (!key) return Promise.reject(new Error('⚙️ 설정에서 카카오 JavaScript API 키를 먼저 등록해주세요.'));
+  if (sdkReady) return Promise.resolve();
+  if (sdkPromise) return sdkPromise;
+  sdkPromise = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
+    s.onload = () => kakao.maps.load(() => { sdkReady = true; res(); });
+    s.onerror = () => { sdkPromise = null; rej(new Error('SDK 로드 실패 — API 키와 플랫폼 도메인 등록을 확인해주세요.')); };
+    document.head.appendChild(s);
+  });
+  return sdkPromise;
+}
+
+// ── URL PARSE ─────────────────────────────────────────────────────
+function parseKakaoUrl(url) {
+  url = (url || '').trim();
+  // https://map.kakao.com/link/map/NAME,lat,lng
+  const m = url.match(/link\/map\/(.+?),([\d.]+),([\d.]+)/);
+  if (m) return { name: decodeURIComponent(m[1].replace(/\+/g, ' ')), lat: +m[2], lng: +m[3] };
+  // https://place.map.kakao.com/ID
+  const p = url.match(/place\.map\.kakao\.com\/(\d+)/);
+  if (p) return { placeId: p[1] };
+  return null;
+}
+
+// ── IMPORT FROM URL ───────────────────────────────────────────────
+async function importUrl() {
+  const urlVal = (document.getElementById('fUrl').value || '').trim();
+  const stEl = document.getElementById('importStatus');
+  const st = (msg, color) => { stEl.textContent = msg; stEl.style.color = color; };
+
+  if (!urlVal) { st('⚠️ URL을 먼저 붙여넣어 주세요.', '#C62828'); return; }
+
+  const parsed = parseKakaoUrl(urlVal);
+  if (!parsed) { st('⚠️ 카카오맵 URL이 아닌 것 같아요.', '#C62828'); return; }
+
+  const apiKey = localStorage.getItem('kakao_js_key') || '';
+  if (!apiKey) {
+    if (parsed.name) {
+      document.getElementById('fName').value = parsed.name;
+      st(`✅ 이름 "${parsed.name}" 만 입력됐어요. 전체 자동입력은 ⚙️ 설정에서 API 키를 등록하세요.`, '#E65100');
+    } else {
+      st('📍 URL 저장됨. 전체 자동입력을 원하면 ⚙️ 설정에서 카카오 API 키를 등록하세요.', '#1565C0');
+    }
+    return;
+  }
+
+  st('🔍 검색 중...', '#999');
+
+  try {
+    await loadSdk();
+    const ps = new kakao.maps.services.Places();
+    const query = parsed.name || document.getElementById('fName').value.trim();
+
+    if (!query) {
+      st('⚠️ 이름이 포함된 URL을 붙여넣거나, 이름 항목을 먼저 입력해주세요.', '#C62828');
+      return;
+    }
+
+    const opts = {};
+    if (parsed.lat && parsed.lng) {
+      opts.location = new kakao.maps.LatLng(parsed.lat, parsed.lng);
+      opts.radius = 300;
+      opts.sort = kakao.maps.services.SortBy.DISTANCE;
+    }
+
+    ps.keywordSearch(query, (results, status) => {
+      if (status !== kakao.maps.services.Status.OK || !results.length) {
+        st('⚠️ 검색 결과가 없어요. 이름을 직접 수정 후 다시 시도해보세요.', '#C62828');
+        return;
+      }
+      fillFromPlace(results[0]);
+      st(`✅ "${results[0].place_name}" 정보를 불러왔어요! 확인 후 저장하세요.`, '#2E7D32');
+    }, opts);
+
+  } catch(e) {
+    st('❌ ' + e.message, '#C62828');
+  }
+}
+
+function fillFromPlace(p) {
+  if (p.place_name) document.getElementById('fName').value = p.place_name;
+  const addr = p.road_address_name || p.address_name;
+  if (addr) document.getElementById('fAddr').value = addr;
+  if (p.phone) document.getElementById('fPhone').value = p.phone;
+  if (p.place_url) document.getElementById('fUrl').value = p.place_url;
+  const ft = mapCat(p.category_name);
+  if (ft) document.getElementById('fFood').value = ft;
+  if (p.address_name) {
+    const { prov, city, dist } = splitAddr(p.address_name);
+    if (prov) document.getElementById('fProv').value = prov;
+    if (city) document.getElementById('fCity').value = city;
+    if (dist) document.getElementById('fDist').value = dist;
+  }
+}
+
+function mapCat(c) {
+  c = c || '';
+  if (/한식|국밥|설렁탕|삼겹살|갈비|불고기|한정식|찌개|순두부|비빔|백반|쌈/.test(c)) return '한식';
+  if (/중식|중국|짜장|짬뽕|탕수육|마라/.test(c)) return '중식';
+  if (/일식|스시|초밥|라멘|우동|소바|돈까스|돈가스|이자카야|야키토리/.test(c)) return '일식';
+  if (/양식|이탈리아|피자|파스타|스테이크|버거|패밀리레스토랑|서양|프랑스/.test(c)) return '양식';
+  if (/분식|떡볶이|김밥|순대|포장마차|튀김/.test(c)) return '분식';
+  return '';
+}
+
+function splitAddr(addr) {
+  const abbr = {
+    '서울':'서울특별시','부산':'부산광역시','대구':'대구광역시','인천':'인천광역시',
+    '광주':'광주광역시','대전':'대전광역시','울산':'울산광역시','세종':'세종특별자치시',
+    '경기':'경기도','강원':'강원도','충북':'충청북도','충남':'충청남도',
+    '전북':'전라북도','전남':'전라남도','경북':'경상북도','경남':'경상남도','제주':'제주도'
+  };
+  const parts = addr.split(' ').filter(Boolean);
+  let prov = '', city = '', dist = '';
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    if (!prov && abbr[p]) { prov = abbr[p]; continue; }
+    if (!prov && /특별시$|광역시$|특별자치시$|도$|특별자치도$/.test(p)) { prov = p; continue; }
+    if (prov && !city && /시$|군$|구$/.test(p)) { city = p; continue; }
+    if (city && /구$/.test(p)) { dist = p; continue; }
+    if (city && /동$|읍$|면$/.test(p)) { dist = p; break; }
+  }
+  return { prov, city, dist };
+}
+
+// ── 전화번호 하이픈 자동 포맷 ─────────────────────────────────────
+function fmtPhone(el) {
+  const n = el.value.replace(/\D/g, '').slice(0, 11);
+  let r = '';
+  if (n.startsWith('02')) {
+    if (n.length <= 2) r = n;
+    else if (n.length <= 5) r = n.slice(0,2)+'-'+n.slice(2);
+    else if (n.length <= 9) r = n.slice(0,2)+'-'+n.slice(2,5)+'-'+n.slice(5);
+    else r = n.slice(0,2)+'-'+n.slice(2,6)+'-'+n.slice(6);
+  } else if (n.startsWith('010')) {
+    if (n.length <= 3) r = n;
+    else if (n.length <= 7) r = n.slice(0,3)+'-'+n.slice(3);
+    else r = n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);
+  } else {
+    if (n.length <= 3) r = n;
+    else if (n.length <= 6) r = n.slice(0,3)+'-'+n.slice(3);
+    else if (n.length <= 10) r = n.slice(0,3)+'-'+n.slice(3,6)+'-'+n.slice(6);
+    else r = n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);
+  }
+  el.value = r;
+}
+
+// ── 데이터 내보내기 ────────────────────────────────────────────────
+async function exportHTML() {
+  const currentDB = JSON.parse(localStorage.getItem('matjib_v1') || 'null') || DB;
+  if (!confirm(`현재 저장된 맛집 ${currentDB.length}개를 파일에 포함해서 다운로드합니다.\n계속하시겠어요?`)) return;
+  try {
+    let html;
+
+    // localhost에서는 fetch (캐시 무시), file://에서는 DOM 직렬화
+    try {
+      const res = await fetch('./index.html?v=' + Date.now(), { cache: 'no-cache' });
+      if (res.ok) html = await res.text();
+    } catch {}
+
+    if (!html) {
+      html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    }
+
+    const dataStr = JSON.stringify(currentDB);
+    // const _emb = [...] 형식과 기존 let DB = [...] 형식 모두 처리
+    let replaced = html.replace(
+      /const _emb = \[[\s\S]*?\];/,
+      `const _emb = ${dataStr};`
+    );
+    if (replaced === html) {
+      replaced = html.replace(
+        /let DB = (?:JSON\.parse\(localStorage\.getItem\('matjib_v1'\) \|\| 'null'\) \|\| )?\[[\s\S]*?\];/,
+        `let DB = ${dataStr};`
+      );
+    }
+
+    const blob = new Blob([replaced], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'index.html'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    alert(`✅ 완료! 맛집 ${currentDB.length}개 데이터가 포함된 index.html 다운로드됐어요.`);
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
